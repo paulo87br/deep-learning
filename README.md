@@ -23,6 +23,8 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_sua_chave
 
 Use a chave **publishable**, nunca `service_role`. O login reutiliza a função `public.pulso_is_admin()` já usada nos outros laboratórios. A sessão é persistida pelo cliente Supabase. O Realtime Broadcast sincroniza as telas e existe fallback por `BroadcastChannel` entre abas do mesmo navegador.
 
+As variáveis são incorporadas pelo Vite durante o build e também disponibilizadas por `/api/config` em runtime. Essa segunda rota evita que um build estático antigo deixe o laboratório permanentemente no fallback. Alterações de variáveis na Vercel exigem um novo deployment.
+
 ## Desenvolvimento
 
 ```bash

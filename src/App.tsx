@@ -1,9 +1,9 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { Session } from '@supabase/supabase-js'
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { ArrowRight, ChevronLeft, ChevronRight, LogIn, LogOut, Maximize, Moon, Pause, Play, Radio, RotateCcw, Send, Sun, X } from 'lucide-react'
 import { NetworkScene, type Theme } from './NetworkScene'
 import { CHOICES, DEFAULT_SCENARIO, FEATURES, LAYER_LABELS, choiceLabel, classroomNetwork, type ChoiceId, type LearningTrace, type Scenario, type Trace } from './network'
-import { ClassroomBus, getSupabaseClient, sanitizeRoom, type ConnectionState } from './supabase'
+import { ClassroomBus, getSupabaseClient, initializeSupabaseClient, sanitizeRoom, type ConnectionState } from './supabase'
 
 function Brand() {
   return <a className="brand" href="https://paulonascimento.me" target="_blank" rel="noreferrer"><svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="95" fill="currentColor"/><g transform="translate(97 100)" fill="none" stroke="#0a0c10" strokeWidth="8"><path d="M-36 36V-36H-14A20 20 0 0 1-14 4H-36"/><path d="M8 36V-36L42 36V-36"/></g></svg><span>Paulo <em>Nascimento</em><small>Laboratório</small></span></a>
@@ -11,8 +11,13 @@ function Brand() {
 
 type AuthState = 'booting' | 'anonymous' | 'checking' | 'authenticated' | 'unauthorized' | 'error' | 'configuration'
 function AuthGate({ children }: { children: ReactNode }) {
-  const client = getSupabaseClient(); const [state, setState] = useState<AuthState>('booting'); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [message, setMessage] = useState('')
+  const [client, setClient] = useState<SupabaseClient | null>(() => getSupabaseClient()); const [configurationResolved, setConfigurationResolved] = useState(false); const [state, setState] = useState<AuthState>('booting'); const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [message, setMessage] = useState('')
   const authorizedId = useRef<string | null>(null); const pendingId = useRef<string | null>(null)
+  useEffect(() => {
+    let active = true
+    void initializeSupabaseClient().then((configuredClient) => { if (active) { setClient(configuredClient); setConfigurationResolved(true) } })
+    return () => { active = false }
+  }, [])
   const authorize = useCallback(async (session: Session) => {
     if (!client) return; const id = session.user.id
     if (authorizedId.current === id) { setState('authenticated'); return }
@@ -26,17 +31,18 @@ function AuthGate({ children }: { children: ReactNode }) {
     else { setMessage(session.user.email || 'Esta conta'); setState('unauthorized') }
   }, [client])
   useEffect(() => {
+    if (!configurationResolved) return
     if (!client) { setState('configuration'); return }
     let active = true
     const { data: listener } = client.auth.onAuthStateChange((event, session) => { window.setTimeout(() => { if (!active) return; if (event === 'SIGNED_OUT') { authorizedId.current = null; pendingId.current = null; setState('anonymous') } else if (session && authorizedId.current !== session.user.id) void authorize(session) }, 0) })
     void client.auth.getSession().then(({ data, error }) => { if (!active) return; if (error) { setMessage('Não foi possível restaurar sua sessão.'); setState('error') } else if (data.session) void authorize(data.session); else setState('anonymous') })
     return () => { active = false; listener.subscription.unsubscribe() }
-  }, [authorize, client])
+  }, [authorize, client, configurationResolved])
   const signIn = async (event: FormEvent) => { event.preventDefault(); if (!client) return; setState('checking'); setMessage(''); const { data, error } = await client.auth.signInWithPassword({ email: email.trim(), password }); if (error || !data.session) { setMessage('E-mail ou senha incorretos.'); setState('anonymous') } else await authorize(data.session) }
   const signOut = async () => { await client?.auth.signOut(); authorizedId.current = null; setState('anonymous') }
   if (state === 'authenticated') return <>{children}<button className="signout" onClick={() => void signOut()}><LogOut size={15}/> Sair</button></>
   const title = state === 'booting' ? 'Retomando sessão' : state === 'checking' ? 'Verificando acesso' : state === 'unauthorized' ? 'Conta sem acesso' : state === 'error' ? 'Conexão interrompida' : 'Entrar'
-  return <main className="auth-page"><section className="auth-shell"><Brand/><span className="eyebrow">Deep Learning ao Vivo</span><h1>{title}</h1>{state === 'booting' || state === 'checking' ? <div className="loading"><i/>Restaurando seu acesso…</div> : state === 'configuration' ? <p className="form-error">Configure o Supabase para iniciar o laboratório.</p> : state === 'unauthorized' ? <><p className="form-error"><strong>{message}</strong> não possui acesso.</p><button className="button secondary" onClick={() => void signOut()}>Usar outra conta</button></> : <form className="auth-form" onSubmit={(event) => void signIn(event)}><label>E-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)}/></label><label>Senha<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}/></label>{message && <p className="form-error">{message}</p>}<button className="button primary"><LogIn size={18}/>Entrar</button></form>}</section></main>
+  return <main className="auth-page"><section className="auth-shell"><Brand/><span className="eyebrow">Deep Learning ao Vivo</span><h1>{title}</h1>{state === 'booting' || state === 'checking' ? <div className="loading"><i/>Restaurando seu acesso…</div> : state === 'configuration' ? <p className="form-error">A configuração do Supabase não chegou a esta implantação. Confirme as variáveis compartilhadas e gere um novo deployment.</p> : state === 'unauthorized' ? <><p className="form-error"><strong>{message}</strong> não possui acesso.</p><button className="button secondary" onClick={() => void signOut()}>Usar outra conta</button></> : <form className="auth-form" onSubmit={(event) => void signIn(event)}><label>E-mail<input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)}/></label><label>Senha<input type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}/></label>{message && <p className="form-error">{message}</p>}<button className="button primary"><LogIn size={18}/>Entrar</button></form>}</section></main>
 }
 
 function Connection({ state }: { state: ConnectionState }) { const labels = { connecting: 'Conectando', connected: 'Ao vivo', local: 'Modo local', error: 'Sem conexão' }; return <span className={`connection ${state}`}><i/>{labels[state]}</span> }
