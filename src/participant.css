@@ -1,0 +1,5 @@
+.choice-grid button:disabled:not(.selected) { opacity: .38; }
+.participant-wait { text-align: center; padding: 45px 10px; }
+.participant-wait i { display: block; width: 18px; height: 18px; margin: auto; border: 2px solid #39414d; border-top-color: var(--gold); border-radius: 50%; animation: participant-spin 1s linear infinite; }
+.participant-wait h2 { margin-top: 18px; }
+@keyframes participant-spin { to { transform: rotate(360deg); } }
