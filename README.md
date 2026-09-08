@@ -14,6 +14,8 @@ O navegador executa uma rede densa em TensorFlow.js com 6 entradas, camadas ocul
 
 É uma rede pequena e didática, não um sistema de recomendação de transporte.
 
+Os oito passos da narrativa percorrem quatro camadas reais: entrada `[6]`, primeira camada oculta `[8]`, segunda camada oculta `[6]` e saída `[4]`. A saída preserva e exibe o vetor de quatro logits, o vetor de quatro probabilidades após softmax e só então aplica `argmax` para nomear a previsão.
+
 ## Variáveis da Vercel
 
 ```env

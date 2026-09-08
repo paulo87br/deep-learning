@@ -3,3 +3,20 @@
 .participant-wait i { display: block; width: 18px; height: 18px; margin: auto; border: 2px solid #39414d; border-top-color: var(--gold); border-radius: 50%; animation: participant-spin 1s linear infinite; }
 .participant-wait h2 { margin-top: 18px; }
 @keyframes participant-spin { to { transform: rotate(360deg); } }
+
+.network-layer-map { position: absolute; z-index: 2; left: 12%; right: 12%; bottom: 42px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; pointer-events: none; }
+.network-layer-map span { color: var(--muted); text-align: center; font: 500 8px/1.4 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.network-layer-map strong { display: block; color: var(--fg); font-size: 10px; }
+.calculation-heading { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--gold); display: grid; gap: 4px; }
+.calculation-heading span { color: var(--gold); font: 600 10px/1.2 'DM Mono', monospace; letter-spacing: .12em; text-transform: uppercase; }
+.calculation-heading strong { font: 500 13px/1.4 'DM Mono', monospace; }
+.calculation-heading small { color: var(--muted); font: 400 10px/1.4 'DM Mono', monospace; }
+.calculation-heading + .calc { margin-top: 10px; }
+.output-vectors { display: grid; gap: 9px; margin-top: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.output-vectors div { min-width: 0; }
+.output-vectors small { display: block; color: var(--gold); margin-bottom: 4px; font: 500 8px/1.3 'DM Mono', monospace; text-transform: uppercase; letter-spacing: .08em; }
+.output-vectors code { display: block; overflow-x: auto; color: var(--fg); font: 500 10px/1.5 'DM Mono', monospace; white-space: nowrap; }
+.output-vectors .vector-order { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 8px; color: var(--muted); font: 400 8px/1.4 'DM Mono', monospace; }
+.output-vectors + .decision { margin-top: 10px; }
+
+@media (max-width: 780px) { .network-layer-map { left: 4%; right: 4%; } }
