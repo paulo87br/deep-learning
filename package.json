@@ -13,7 +13,9 @@
   "dependencies": {
     "@supabase/supabase-js": "2.57.4",
     "@tensorflow/tfjs": "4.22.0",
+    "@types/qrcode": "^1.5.5",
     "lucide-react": "0.544.0",
+    "qrcode": "^1.5.4",
     "react": "19.1.1",
     "react-dom": "19.1.1",
     "three": "0.180.0"

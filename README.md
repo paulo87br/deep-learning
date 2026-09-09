@@ -6,7 +6,10 @@ Laboratório didático com duas telas sincronizadas para mostrar, com cálculos 
 
 - `/input?room=AULA-IA` — tablet do participante.
 - `/display?room=AULA-IA` — projeção e condução da aula.
+- `/teacher?room=AULA-IA` — painel do professor com QR Code e links da sala.
 - `/` — escolha da sala e das telas.
+
+Login e início são leves: Three.js e TensorFlow.js só são baixados ao abrir a experiência.
 
 ## O que é real
 
