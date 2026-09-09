@@ -95,6 +95,17 @@ class ClassroomNetwork {
     })
   }
 
+  influencePath(scenario: Scenario, featureIndex: number) {
+    const trace = this.predict(scenario)
+    const strongest = (values: number[]) => values.reduce((best, value, index) => Math.abs(value) > Math.abs(values[best]) ? index : best, 0)
+    const row = (values: ArrayLike<number>, columns: number, index: number) => Array.from({ length: columns }, (_, offset) => values[index * columns + offset])
+    const input = Math.max(0, Math.min(trace.normalized.length - 1, featureIndex))
+    const hidden1 = strongest(row(this.w1.dataSync(), 8, input).map((weight) => trace.normalized[input] * weight))
+    const hidden2 = strongest(row(this.w2.dataSync(), 6, hidden1).map((weight) => trace.hidden1[hidden1] * weight))
+    const output = strongest(row(this.w3.dataSync(), 4, hidden2).map((weight) => trace.hidden2[hidden2] * weight))
+    return [input, hidden1, hidden2, output]
+  }
+
   train(scenario: Scenario, expected: ChoiceId): LearningTrace {
     const before = this.predict(scenario)
     const target = CHOICES.findIndex((choice) => choice.id === expected)

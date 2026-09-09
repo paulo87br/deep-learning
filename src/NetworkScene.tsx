@@ -21,8 +21,8 @@ const CAMERA = new THREE.Vector3(13, 7, 17)
 
 type NodeRecord = { mesh: THREE.Mesh; layer: number; index: number; value: number }
 
-export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer }: {
-  trace: Trace; activeStage: number; theme: Theme; resetId: number; onSelectLayer: (layer: number) => void
+export function NetworkScene({ trace, activeStage, theme, resetId, focusPath, onSelectLayer }: {
+  trace: Trace; activeStage: number; theme: Theme; resetId: number; focusPath: number[]; onSelectLayer: (layer: number) => void
 }) {
   const mountRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef(activeStage)
@@ -31,9 +31,11 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
   const controlsRef = useRef<OrbitControls | null>(null)
   const onSelectRef = useRef(onSelectLayer)
+  const focusPathRef = useRef(focusPath)
   useEffect(() => { activeRef.current = activeStage }, [activeStage])
   useEffect(() => { themeRef.current = theme }, [theme])
   useEffect(() => { onSelectRef.current = onSelectLayer }, [onSelectLayer])
+  useEffect(() => { focusPathRef.current = focusPath }, [focusPath])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -70,7 +72,7 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
       from.forEach((a) => to.forEach((b) => {
         const material = new THREE.LineBasicMaterial({ color: palette.line, transparent: true, opacity: palette.lineIdleOpacity })
         const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.mesh.position, b.mesh.position]), material)
-        line.userData.bridge = layer; scene.add(line); lines.push(line)
+        line.userData.bridge = layer; line.userData.fromIndex = a.index; line.userData.toIndex = b.index; scene.add(line); lines.push(line)
       }))
     }
     const pulseMaterial = new THREE.MeshBasicMaterial({ color: palette.active, toneMapped: false })
@@ -96,18 +98,20 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
       const activeLayer = stage < 2 ? 0 : stage < 4 ? 1 : stage < 6 ? 2 : 3
       nodes.forEach((node) => {
         const material = node.mesh.material as THREE.MeshBasicMaterial
-        material.color.set(node.layer === activeLayer ? colors.active : node.value > .55 ? colors.signal : colors.idle)
+        const focused = focusPathRef.current[node.layer] === node.index
+        material.color.set(focused ? colors.signal : node.layer === activeLayer ? colors.active : node.value > .55 ? colors.signal : colors.idle)
         const targetOpacity = node.layer === activeLayer ? .98 : node.layer < activeLayer ? colors.nodeReachedOpacity : colors.nodeFutureOpacity
-        material.opacity += (targetOpacity - material.opacity) * .09
+        material.opacity += ((focused ? 1 : targetOpacity) - material.opacity) * .09
         const pulseScale = node.layer === activeLayer ? 1.05 + Math.sin(time * .006 + node.index) * .16 : .86
-        node.mesh.scale.setScalar(pulseScale + Math.min(1, Math.abs(node.value)) * .45)
+        node.mesh.scale.setScalar(pulseScale + Math.min(1, Math.abs(node.value)) * .45 + (focused ? .28 : 0))
       })
       lines.forEach((line) => {
         const material = line.material as THREE.LineBasicMaterial
         const active = line.userData.bridge === Math.max(0, activeLayer - 1)
         const reached = line.userData.bridge < activeLayer
-        material.color.set(active ? colors.active : reached ? colors.lineReached : colors.line)
-        material.opacity = active ? colors.lineActiveOpacity : reached ? colors.lineReachedOpacity : colors.lineIdleOpacity
+        const focused = focusPathRef.current[line.userData.bridge] === line.userData.fromIndex && focusPathRef.current[line.userData.bridge + 1] === line.userData.toIndex
+        material.color.set(focused ? colors.signal : active ? colors.active : reached ? colors.lineReached : colors.line)
+        material.opacity = focused ? .82 : active ? colors.lineActiveOpacity : reached ? colors.lineReachedOpacity : colors.lineIdleOpacity
       })
       const fromX = activeLayer ? X[activeLayer - 1] : X[0] - 1.3
       const progress = (Math.sin(time * .0035) + 1) / 2
