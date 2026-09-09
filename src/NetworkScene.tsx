@@ -5,8 +5,16 @@ import type { Trace } from './network'
 
 export type Theme = 'dark' | 'light'
 const PALETTES = {
-  dark: { background: '#090b0f', idle: '#d9dde5', active: '#e2aa3d', signal: '#f5f1e8', line: '#38404d' },
-  light: { background: '#f4f1e9', idle: '#343942', active: '#a96800', signal: '#087687', line: '#c7c0b3' },
+  dark: {
+    background: '#090b0f', idle: '#d9dde5', active: '#e2aa3d', signal: '#f5f1e8',
+    line: '#38404d', lineReached: '#667080', lineIdleOpacity: .055, lineReachedOpacity: .11, lineActiveOpacity: .22,
+    nodeFutureOpacity: .16, nodeReachedOpacity: .48,
+  },
+  light: {
+    background: '#f4f1e9', idle: '#343942', active: '#a96800', signal: '#087687',
+    line: '#858b91', lineReached: '#59616a', lineIdleOpacity: .14, lineReachedOpacity: .25, lineActiveOpacity: .48,
+    nodeFutureOpacity: .3, nodeReachedOpacity: .62,
+  },
 }
 const X = [-6, -2, 2, 6]
 const CAMERA = new THREE.Vector3(13, 7, 17)
@@ -47,7 +55,7 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
     const sphere = new THREE.SphereGeometry(.22, 20, 20)
     const nodes: NodeRecord[] = []
     layerValues.forEach((values, layer) => values.forEach((value, index) => {
-      const material = new THREE.MeshBasicMaterial({ color: palette.idle, transparent: true, opacity: .25, toneMapped: false })
+      const material = new THREE.MeshBasicMaterial({ color: palette.idle, transparent: true, opacity: palette.nodeFutureOpacity, toneMapped: false })
       const mesh = new THREE.Mesh(sphere, material)
       const y = (index - (values.length - 1) / 2) * 1.03
       const z = Math.sin(index * 1.7 + layer) * .62
@@ -60,7 +68,7 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
       const from = nodes.filter((node) => node.layer === layer)
       const to = nodes.filter((node) => node.layer === layer + 1)
       from.forEach((a) => to.forEach((b) => {
-        const material = new THREE.LineBasicMaterial({ color: palette.line, transparent: true, opacity: .07 })
+        const material = new THREE.LineBasicMaterial({ color: palette.line, transparent: true, opacity: palette.lineIdleOpacity })
         const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a.mesh.position, b.mesh.position]), material)
         line.userData.bridge = layer; scene.add(line); lines.push(line)
       }))
@@ -89,7 +97,7 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
       nodes.forEach((node) => {
         const material = node.mesh.material as THREE.MeshBasicMaterial
         material.color.set(node.layer === activeLayer ? colors.active : node.value > .55 ? colors.signal : colors.idle)
-        const targetOpacity = node.layer === activeLayer ? .98 : node.layer < activeLayer ? .48 : .16
+        const targetOpacity = node.layer === activeLayer ? .98 : node.layer < activeLayer ? colors.nodeReachedOpacity : colors.nodeFutureOpacity
         material.opacity += (targetOpacity - material.opacity) * .09
         const pulseScale = node.layer === activeLayer ? 1.05 + Math.sin(time * .006 + node.index) * .16 : .86
         node.mesh.scale.setScalar(pulseScale + Math.min(1, Math.abs(node.value)) * .45)
@@ -97,7 +105,9 @@ export function NetworkScene({ trace, activeStage, theme, resetId, onSelectLayer
       lines.forEach((line) => {
         const material = line.material as THREE.LineBasicMaterial
         const active = line.userData.bridge === Math.max(0, activeLayer - 1)
-        material.color.set(active ? colors.active : colors.line); material.opacity = active ? .22 : .055
+        const reached = line.userData.bridge < activeLayer
+        material.color.set(active ? colors.active : reached ? colors.lineReached : colors.line)
+        material.opacity = active ? colors.lineActiveOpacity : reached ? colors.lineReachedOpacity : colors.lineIdleOpacity
       })
       const fromX = activeLayer ? X[activeLayer - 1] : X[0] - 1.3
       const progress = (Math.sin(time * .0035) + 1) / 2
