@@ -35,6 +35,12 @@ npm run typecheck
 npm run dev
 ```
 
+Com as variáveis do Supabase disponíveis no terminal, valide o canal antes da aula:
+
+```bash
+npm run test:realtime
+```
+
 Para validar a versão de produção:
 
 ```bash
