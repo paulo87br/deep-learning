@@ -31,6 +31,7 @@ As variáveis são incorporadas pelo Vite durante o build e também disponibiliz
 
 ```bash
 npm install
+npm run typecheck
 npm run dev
 ```
 

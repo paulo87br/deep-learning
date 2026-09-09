@@ -40,7 +40,7 @@ export class ClassroomBus {
     this.local = new BroadcastChannel(`deep-learning-classroom:${room}`)
     this.local.onmessage = ({ data }) => this.dispatch(data?.event, data?.payload)
   }
-  on(event: ClassroomEvent, handler: Handler) { const set = this.handlers.get(event) || new Set<Handler>(); set.add(handler); this.handlers.set(event, set) }
+  on(event: ClassroomEvent, handler: Handler) { const set = this.handlers.get(event) || new Set<Handler>(); set.add(handler); this.handlers.set(event, set); return () => set.delete(handler) }
   private dispatch(event: ClassroomEvent, payload: Record<string, unknown>) { this.handlers.get(event)?.forEach((handler) => handler(payload || {})) }
   connect(onState: (state: ConnectionState) => void) {
     const supabase = getSupabaseClient()
@@ -58,7 +58,7 @@ export class ClassroomBus {
     this.local.postMessage({ event, payload: envelope })
     if (this.channel) await this.channel.send({ type: 'broadcast', event, payload: envelope })
   }
-  disconnect() { this.local.close(); if (this.channel) void getSupabaseClient()?.removeChannel(this.channel); this.channel = null }
+  disconnect() { this.local.close(); if (this.channel) void getSupabaseClient()?.removeChannel(this.channel); this.channel = null; this.handlers.clear() }
 }
 
 export function sanitizeRoom(value: string | null) { return (value || 'AULA-IA').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 18) || 'AULA-IA' }
